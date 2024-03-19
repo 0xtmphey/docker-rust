@@ -1,7 +1,4 @@
-use std::{
-    os::unix::fs,
-    path::{Path, PathBuf},
-};
+use std::{os::unix::fs, path::Path};
 
 use anyhow::{Context, Result};
 
