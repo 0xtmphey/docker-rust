@@ -30,13 +30,13 @@ fn main() -> Result<()> {
             )
         })?;
 
-    if output.status.success() {
-        let std_out = std::str::from_utf8(&output.stdout)?;
-        print!("{}", std_out);
+    let std_out = std::str::from_utf8(&output.stdout)?;
+    print!("{}", std_out);
 
-        let std_err = std::str::from_utf8(&output.stderr)?;
-        eprint!("{}", std_err);
-    } else {
+    let std_err = std::str::from_utf8(&output.stderr)?;
+    eprint!("{}", std_err);
+
+    if !output.status.success() {
         let exit_code = output.status.code().unwrap_or(1);
         std::process::exit(exit_code);
     }
