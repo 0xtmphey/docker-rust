@@ -1,24 +1,37 @@
-use std::os::unix::fs;
+use std::{
+    os::unix::fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
-use libc;
+
+use crate::docker_hub::api::download_image;
+
+mod docker_hub;
+
+const CHROOT: &str = "./temp";
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
+    let image = &args[2];
     let command = &args[3];
     let command_args = &args[4..];
 
-    if std::fs::metadata("./tmp-cc").is_err() {
-        std::fs::create_dir("./tmp-cc")?;
-        std::fs::create_dir("./tmp-cc/dev")?;
-        std::fs::write("./tmp-cc/dev/null", b"")?;
-        std::fs::create_dir_all("./tmp-cc/usr/local/bin")?;
-        std::fs::copy(command, format!("./tmp-cc/usr/local/bin/docker-explorer"))
+    if std::fs::metadata(CHROOT).is_err() {
+        std::fs::create_dir(CHROOT)?;
+        std::fs::create_dir(format!("{CHROOT}/dev"))?;
+        std::fs::File::create(format!("{CHROOT}/dev/null"))?;
+        std::fs::create_dir_all(format!("{CHROOT}/usr/local/bin"))?;
+        std::fs::copy(command, format!("{CHROOT}/usr/local/bin/docker-explorer"))
             .expect("Failed to copy");
     }
 
-    fs::chroot("./tmp-cc")?;
+    let path = Path::new(CHROOT).to_path_buf();
+    download_image(&path, image).await?;
+
+    fs::chroot(CHROOT)?;
     std::env::set_current_dir("/")?;
 
     unsafe {
