@@ -1,6 +1,7 @@
 use std::os::unix::fs;
 
 use anyhow::{Context, Result};
+use libc;
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
 fn main() -> Result<()> {
@@ -19,6 +20,11 @@ fn main() -> Result<()> {
 
     fs::chroot("./tmp-cc")?;
     std::env::set_current_dir("/")?;
+
+    unsafe {
+        #[cfg(target_os = "linux")]
+        libc::unshare(libc::CLONE_NEWPID);
+    }
 
     let output = std::process::Command::new(command)
         .args(command_args)
