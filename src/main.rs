@@ -1,3 +1,5 @@
+use std::os::unix::fs;
+
 use anyhow::{Context, Result};
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
@@ -5,6 +7,19 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let command = &args[3];
     let command_args = &args[4..];
+
+    if std::fs::metadata("./tmp-cc").is_err() {
+        std::fs::create_dir("./tmp-cc")?;
+        std::fs::create_dir("./tmp-cc/dev")?;
+        std::fs::write("./tmp-cc/dev/null", b"")?;
+        std::fs::create_dir_all("./tmp-cc/usr/local/bin")?;
+        std::fs::copy(command, format!("./tmp-cc/usr/local/bin/docker-explorer"))
+            .expect("Failed to copy");
+    }
+
+    fs::chroot("./tmp-cc")?;
+    std::env::set_current_dir("/")?;
+
     let output = std::process::Command::new(command)
         .args(command_args)
         .output()
